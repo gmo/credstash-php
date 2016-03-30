@@ -2,13 +2,10 @@
 
 namespace CredStash;
 
-use Aws\DynamoDb\DynamoDbClient;
-use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Kms\KmsClient;
-use CredStash\Exception\CredentialNotFoundException;
-use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\IntegrityException;
 use CredStash\Exception\RuntimeException;
+use CredStash\Store\StoreInterface;
 
 /**
  * The CredStash.
@@ -17,29 +14,25 @@ use CredStash\Exception\RuntimeException;
  */
 class CredStash implements CredStashInterface
 {
-    /** @var DynamoDbClient */
-    protected $db;
+    /** @var StoreInterface */
+    protected $store;
     /** @var KmsClient */
     protected $kms;
     /** @var string */
     protected $kmsKey;
-    /** @var string */
-    protected $table;
 
     /**
      * Constructor.
      *
-     * @param DynamoDbClient $db
+     * @param StoreInterface $store
      * @param KmsClient      $kms
      * @param string         $kmsKey
-     * @param string         $table
      */
-    public function __construct(DynamoDbClient $db, KmsClient $kms, $kmsKey = 'alias/credstash', $table = 'credential-store')
+    public function __construct(StoreInterface $store, KmsClient $kms, $kmsKey = 'alias/credstash')
     {
-        $this->db = $db;
+        $this->store = $store;
         $this->kms = $kms;
         $this->kmsKey = $kmsKey;
-        $this->table = $table;
     }
 
     /**
@@ -47,24 +40,10 @@ class CredStash implements CredStashInterface
      */
     public function listCredentials()
     {
-        $response = $this->db->scan([
-            'TableName' => $this->table,
-            'ProjectionExpression' => '#N, version',
-            'ExpressionAttributeNames' => [
-                '#N' => 'name',
-            ],
-        ]);
+        $credentials = $this->store->listCredentials();
+        $credentials = array_map('intval', $credentials);
 
-        if ($response['Count'] === 0) {
-            return [];
-        }
-
-        $result = [];
-        foreach ($response['Items'] as $item) {
-            $result[$item['name']['S']] = (int) $item['version']['S'];
-        }
-
-        return $result;
+        return $credentials;
     }
 
     /**
@@ -87,7 +66,11 @@ class CredStash implements CredStashInterface
      */
     public function get($name, $context = [], $version = null)
     {
-        $item = $this->getItem($name, $version);
+        if ($version === null) {
+            $item = $this->store->get($name);
+        } else {
+            $item = $this->store->getAtVersion($name, $this->paddedInt($version));
+        }
 
         // Check the HMAC before we decrypt to verify ciphertext integrity
         $response = $this->kms->decrypt([
@@ -138,13 +121,7 @@ class CredStash implements CredStashInterface
         $key = base64_encode($wrappedKey);
         $contents = base64_encode($cText);
 
-        $this->putItem([
-            'name'     => $name,
-            'version'  => $version,
-            'key'      => $key,
-            'contents' => $contents,
-            'hmac'     => $hmac,
-        ]);
+        $this->store->put($name, $contents, $key, $hmac, $version);
     }
 
     /**
@@ -152,24 +129,7 @@ class CredStash implements CredStashInterface
      */
     public function delete($name)
     {
-        $response = $this->db->scan([
-            'TableName'                 => $this->table,
-            'FilterExpression'          => '#N = :name',
-            'ProjectionExpression'      => '#N, version',
-            'ExpressionAttributeNames'  => [
-                '#N' => 'name',
-            ],
-            'ExpressionAttributeValues' => [
-                ':name' => ['S' => $name],
-            ],
-        ]);
-
-        foreach ($response['Items'] as $item) {
-            $this->db->deleteItem([
-                'TableName' => $this->table,
-                'Key' => $item,
-            ]);
-        }
+        $this->store->delete($name);
     }
 
     /**
@@ -177,107 +137,7 @@ class CredStash implements CredStashInterface
      */
     public function getHighestVersion($name)
     {
-        $params = [
-            'TableName'                 => $this->table,
-            'Limit'                     => 1,
-            'ScanIndexForward'          => false,
-            'ConsistentRead'            => true,
-            'KeyConditionExpression'    => '#N = :name',
-            'ExpressionAttributeNames'  => [
-                '#N' => 'name',
-            ],
-            'ExpressionAttributeValues' => [
-                ':name' => ['S' => $name],
-            ],
-            'ProjectionExpression'      => 'version',
-        ];
-
-        $response = $this->db->query($params);
-
-        if ($response['Count'] === 0) {
-            return 0;
-        }
-
-        return (int) $response['Items'][0]['version']['S'];
-    }
-
-    /**
-     * Puts the item in the DB if it does not already exist.
-     *
-     * @param array $item
-     */
-    private function putItem($item)
-    {
-        $item = array_map(
-            function ($prop) {
-                return ['S' => $prop];
-            },
-            $item
-        );
-
-        $params = [
-            'TableName'                => $this->table,
-            'Item'                     => $item,
-            'ConditionExpression'      => 'attribute_not_exists(#N)',
-            'ExpressionAttributeNames' => [
-                '#N' => 'name',
-            ],
-        ];
-
-        try {
-            $this->db->putItem($params);
-        } catch (DynamoDbException $e) {
-            if ($e->getAwsErrorCode() === 'ConditionalCheckFailedException') {
-                throw new DuplicateCredentialVersionException($item['name']['S'], $item['version']['S']);
-            }
-
-            throw $e;
-        }
-    }
-
-    /**
-     * Fetches the item for the given key from DB with
-     * the given version or the latest version.
-     *
-     * @param string          $name
-     * @param int|string|null $version
-     *
-     * @return array
-     */
-    private function getItem($name, $version = null)
-    {
-        if ($version === null) {
-            $response = $this->db->query([
-                'TableName'                 => $this->table,
-                'Limit'                     => 1,
-                'ScanIndexForward'          => false,
-                'ConsistentRead'            => true,
-                'KeyConditionExpression'    => '#N = :name',
-                'ExpressionAttributeNames'  => [
-                    '#N' => 'name',
-                ],
-                'ExpressionAttributeValues' => [
-                    ':name' => ['S' => $name],
-                ],
-            ]);
-            if ($response['Count'] === 0) {
-                throw new CredentialNotFoundException($name);
-            }
-            $item = $response['Items'][0];
-        } else {
-            $response = $this->db->getItem([
-                'TableName' => $this->table,
-                'Key'       => [
-                    'name'    => $name,
-                    'version' => $this->paddedInt($version),
-                ],
-            ]);
-            $item = $response['Item'];
-        }
-
-        return array_map(function ($prop) {
-            return $prop['S'];
-        }, $item);
+        return (int) $this->store->getHighestVersion($name);
     }
 
     /**
