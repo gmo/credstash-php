@@ -4,6 +4,7 @@ namespace CredStash\Store;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
+use CredStash\Credential;
 use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\CredentialNotFoundException;
 
@@ -69,9 +70,9 @@ class DynamoDbStore implements StoreInterface
             throw new CredentialNotFoundException($name);
         }
 
-        $item = $this->normalizeItem($response['Items'][0]);
+        $credential = $this->createCredential($response['Items'][0]);
 
-        return $item;
+        return $credential;
     }
 
     /**
@@ -87,9 +88,9 @@ class DynamoDbStore implements StoreInterface
             ],
         ]);
 
-        $item = $this->normalizeItem($response['Item']);
+        $credential = $this->createCredential($response['Item']);
 
-        return $item;
+        return $credential;
     }
 
     /**
@@ -109,14 +110,14 @@ class DynamoDbStore implements StoreInterface
     /**
      * {@inheritdoc}
      */
-    public function put($name, $contents, $key, $hmac, $version)
+    public function put(Credential $credential)
     {
         $item = [
-            'name'     => ['S' => $name],
-            'version'  => ['S' => $version],
-            'key'      => ['S' => $key],
-            'contents' => ['S' => $contents],
-            'hmac'     => ['S' => $hmac],
+            'name'     => ['S' => $credential->getName()],
+            'version'  => ['S' => $credential->getVersion()],
+            'key'      => ['S' => $credential->getKey()],
+            'contents' => ['S' => $credential->getContents()],
+            'hmac'     => ['S' => $credential->getHmac()],
         ];
 
         $params = [
@@ -194,10 +195,23 @@ class DynamoDbStore implements StoreInterface
         return $this->db->query($params);
     }
 
-    private function normalizeItem($item)
+    /**
+     * Maps an item array to a Credential object.
+     *
+     * @param array $item
+     *
+     * @return Credential
+     */
+    private function createCredential($item)
     {
-        return array_map(function ($prop) {
-            return $prop['S'];
-        }, $item);
+        $cred = (new Credential())
+            ->setName($item['name']['S'])
+            ->setVersion($item['version']['S'])
+            ->setKey($item['key']['S'])
+            ->setContents($item['contents']['S'])
+            ->setHmac($item['hmac']['S'])
+        ;
+
+        return $cred;
     }
 }

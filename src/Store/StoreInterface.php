@@ -2,6 +2,7 @@
 
 namespace CredStash\Store;
 
+use CredStash\Credential;
 use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\CredentialNotFoundException;
 
@@ -26,7 +27,7 @@ interface StoreInterface
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      *
-     * @return array
+     * @return Credential The credential.
      */
     public function get($name);
 
@@ -38,7 +39,7 @@ interface StoreInterface
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      *
-     * @return array
+     * @return Credential The credential.
      */
     public function getAtVersion($name, $version);
 
@@ -54,15 +55,11 @@ interface StoreInterface
     /**
      * Puts the credential in the store if it does not already exist.
      *
-     * @param string $name     The credential's name.
-     * @param string $contents The encrypted data.
-     * @param string $key      The wrapped data key.
-     * @param string $hmac     The HMAC value.
-     * @param string $version  A normalized (padded) numeric version string.
+     * @param Credential $credential The credential to store.
      *
      * @throws DuplicateCredentialVersionException If the credential with the version already exists.
      */
-    public function put($name, $contents, $key, $hmac, $version);
+    public function put(Credential $credential);
 
     /**
      * Delete a credential from the store (including all versions).

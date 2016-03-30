@@ -67,24 +67,24 @@ class CredStash implements CredStashInterface
     public function get($name, $context = [], $version = null)
     {
         if ($version === null) {
-            $item = $this->store->get($name);
+            $credential = $this->store->get($name);
         } else {
-            $item = $this->store->getAtVersion($name, $this->paddedInt($version));
+            $credential = $this->store->getAtVersion($name, $this->paddedInt($version));
         }
 
         // Check the HMAC before we decrypt to verify ciphertext integrity
         $response = $this->kms->decrypt([
             'KeyId'             => $this->kmsKey,
-            'CiphertextBlob'    => base64_decode($item['key']),
+            'CiphertextBlob'    => base64_decode($credential->getKey()),
             'EncryptionContext' => $context,
         ]);
 
-        $contents = base64_decode($item['contents']);
+        $contents = base64_decode($credential->getContents());
         $key = substr($response['Plaintext'], 0, 32);
         $hmacKey = substr($response['Plaintext'], 32);
 
         $hmac = hash_hmac('sha256', $contents, $hmacKey);
-        if (!hash_equals($hmac, $item['hmac'])) {
+        if (!hash_equals($hmac, $credential->getHmac())) {
             throw new IntegrityException(sprintf('Computed HMAC on %s does not match stored HMAC', $name));
         }
 
@@ -121,7 +121,15 @@ class CredStash implements CredStashInterface
         $key = base64_encode($wrappedKey);
         $contents = base64_encode($cText);
 
-        $this->store->put($name, $contents, $key, $hmac, $version);
+        $credential = (new Credential())
+            ->setName($name)
+            ->setVersion($version)
+            ->setKey($key)
+            ->setContents($contents)
+            ->setHmac($hmac)
+        ;
+
+        $this->store->put($credential);
     }
 
     /**
