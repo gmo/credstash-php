@@ -76,7 +76,7 @@ class KmsEncryption implements EncryptionInterface
         $credential->setContents($contents);
 
         $hmac = hash_hmac('sha256', $contents, $hmacKey);
-        $credential->setHmac($hmac);
+        $credential->setHash($hmac);
 
         return $credential;
     }
@@ -93,7 +93,7 @@ class KmsEncryption implements EncryptionInterface
     {
         $hmac = hash_hmac('sha256', $credential->getContents(), $hmacKey);
 
-        if (!hash_equals($hmac, $credential->getHmac())) {
+        if (!hash_equals($hmac, $credential->getHash())) {
             throw new IntegrityException(
                 sprintf('Computed HMAC on %s does not match stored HMAC', $credential->getName())
             );

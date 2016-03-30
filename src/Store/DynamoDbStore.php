@@ -117,7 +117,7 @@ class DynamoDbStore implements StoreInterface
             'version'  => ['S' => $credential->getVersion()],
             'key'      => ['S' => $credential->getKey()],
             'contents' => ['S' => $credential->getContents()],
-            'hmac'     => ['S' => $credential->getHmac()],
+            'hmac'     => ['S' => $credential->getHash()],
         ];
 
         $params = [
@@ -209,7 +209,7 @@ class DynamoDbStore implements StoreInterface
             ->setVersion($item['version']['S'])
             ->setKey($item['key']['S'])
             ->setContents($item['contents']['S'])
-            ->setHmac($item['hmac']['S'])
+            ->setHash($item['hmac']['S'])
         ;
 
         return $cred;

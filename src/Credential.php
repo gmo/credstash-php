@@ -17,8 +17,8 @@ class Credential
     protected $key;
     /** @var string The encrypted data */
     protected $contents;
-    /** @var string The HMAC hash */
-    protected $hmac;
+    /** @var string The hash */
+    protected $hash;
 
     /**
      * Get the credential's name.
@@ -117,25 +117,25 @@ class Credential
     }
 
     /**
-     * Get the HMAC hash.
+     * Get the hash.
      *
      * @return string
      */
-    public function getHmac()
+    public function getHash()
     {
-        return $this->hmac;
+        return $this->hash;
     }
 
     /**
-     * Set the HMAC hash.
+     * Set the hash.
      *
-     * @param string $hmac
+     * @param string $hash
      *
      * @return Credential
      */
-    public function setHmac($hmac)
+    public function setHash($hash)
     {
-        $this->hmac = $hmac;
+        $this->hash = $hash;
 
         return $this;
     }
