@@ -16,9 +16,15 @@
         "php": "^5.5.9",
         "symfony/polyfill-php56": "^1.0"
     },
+    "require-dev": {
+        "symfony/console": "^2.7 || ^3.0"
+    },
     "autoload": {
         "psr-4": {
             "CredStash\\": "src"
         }
-    }
+    },
+    "bin": [
+        "bin/credstash"
+    ]
 }

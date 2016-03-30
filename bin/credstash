@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+if (file_exists(__DIR__ . '/../vendor')) {
+    /** @noinspection PhpIncludeInspection */
+    require_once __DIR__ . '/../vendor/autoload.php';
+} else {
+    /** @noinspection PhpIncludeInspection */
+    require_once __DIR__ . '/../../../../vendor/autoload.php';
+}
+
+$app = new CredStash\Console\Application();
+$app->run();
