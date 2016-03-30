@@ -2,8 +2,6 @@
 
 namespace CredStash\Console;
 
-use CredStash\Command;
-
 /**
  * The CredStash Console Application.
  *
@@ -25,5 +23,22 @@ class Application extends \Symfony\Component\Console\Application
     public function getHelp()
     {
         return parent::getHelp() . ' - <comment>A credential/secret storage system</comment>';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getDefaultCommands()
+    {
+        return array_merge(
+            parent::getDefaultCommands(),
+            [
+                new Command\DeleteCommand(),
+                new Command\GetAllCommand(),
+                new Command\GetCommand(),
+                new Command\PutCommand(),
+                new Command\InfoCommand(),
+            ]
+        );
     }
 }
