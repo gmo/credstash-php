@@ -2,7 +2,10 @@
 
 namespace CredStash;
 
+use Aws\Sdk;
 use CredStash\Encryption\EncryptionInterface;
+use CredStash\Encryption\KmsEncryption;
+use CredStash\Store\DynamoDbStore;
 use CredStash\Store\StoreInterface;
 
 /**
@@ -27,6 +30,29 @@ class CredStash implements CredStashInterface
     {
         $this->store = $store;
         $this->encryption = $encryption;
+    }
+
+    /**
+     * Shortcut to create CredStash with default setup.
+     *
+     * @param Sdk    $aws       An AWS SDK instance.
+     * @param string $tableName The table name. Defaults to "credential-store".
+     * @param string $kmsKey    The KMS key. Defaults to "alias/credstash".
+     *
+     * @return CredStashInterface
+     */
+    public static function createFromSdk(
+        Sdk $aws,
+        $tableName = DynamoDbStore::DEFAULT_TABLE_NAME,
+        $kmsKey = KmsEncryption::DEFAULT_KMS_KEY
+    ) {
+        $db = $aws->createDynamoDb(['version' => '2012-08-10']);
+        $store = new DynamoDbStore($db, $tableName ?: DynamoDbStore::DEFAULT_TABLE_NAME);
+
+        $kms = $aws->createKms(['version' => '2014-11-01']);
+        $encryption = new KmsEncryption($kms, $kmsKey ?: KmsEncryption::DEFAULT_KMS_KEY);
+
+        return new static($store, $encryption);
     }
 
     /**
