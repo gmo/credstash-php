@@ -9,5 +9,16 @@
             "name": "Carson Full",
             "email": "carsonfull@gmail.com"
         }
-    ]
+    ],
+    "require": {
+        "aws/aws-sdk-php": "^3.9",
+        "ext-openssl": "*",
+        "php": "^5.5.9",
+        "symfony/polyfill-php56": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CredStash\\": "src"
+        }
+    }
 }
