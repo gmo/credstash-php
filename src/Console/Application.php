@@ -2,6 +2,8 @@
 
 namespace CredStash\Console;
 
+use CredStash\CredStashInterface;
+
 /**
  * The CredStash Console Application.
  *
@@ -11,10 +13,15 @@ class Application extends \Symfony\Component\Console\Application
 {
     /**
      * Constructor.
+     *
+     * @param CredStashInterface|null $credStash Optional CredStash instance.
      */
-    public function __construct()
+    public function __construct(CredStashInterface $credStash = null)
     {
         parent::__construct('credstash', null);
+
+        $this->getHelperSet()->set(new Helper\CredStashHelper($credStash));
+        $this->getHelperSet()->set(new Helper\AwsHelper());
     }
 
     /**

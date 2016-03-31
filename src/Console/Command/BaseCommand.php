@@ -2,6 +2,8 @@
 
 namespace CredStash\Console\Command;
 
+use CredStash\Console\Helper\CredStashHelper;
+use CredStash\CredStashInterface;
 use CredStash\Encryption\KmsEncryption;
 use CredStash\Store\DynamoDbStore;
 use Symfony\Component\Console\Command\Command;
@@ -54,5 +56,16 @@ EOL
                 'AWS profile name to use <comment>[default: "default"]</comment>'
             )
         ;
+    }
+
+    /**
+     * @return CredStashInterface
+     */
+    protected function getCredStash()
+    {
+        /** @var CredStashHelper $helper */
+        $helper = $this->getHelper('credstash');
+
+        return $helper->getCredStash();
     }
 }
