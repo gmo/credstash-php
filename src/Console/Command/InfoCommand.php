@@ -2,6 +2,9 @@
 
 namespace CredStash\Console\Command;
 
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
 /**
  * Info Command.
  *
@@ -16,10 +19,22 @@ class InfoCommand extends BaseCommand
      */
     protected function configure()
     {
-        parent::configure();
         $this
             ->setName('info')
             ->setDescription('List credentials and their versions')
+            ->addOption('int', 'i', null, 'Cast versions to integers instead of leaving them padded with 0\'s')
         ;
+        parent::configure();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $credentials = $this->getCredStash()->listCredentials(!$input->getOption('int'));
+        foreach ($credentials as $name => $version) {
+            $output->writeln("<info>$name</info> -- version <comment>$version</comment>");
+        }
     }
 }
