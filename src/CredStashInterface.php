@@ -38,6 +38,26 @@ interface CredStashInterface
     public function getAll($context = [], $version = null);
 
     /**
+     * Fetches and decrypts all credentials matching the pattern given.
+     *
+     * The pattern can contain "*" and "?" wildcard characters and "[]" grouping.
+     *
+     * @example "gr[ae]y"
+     * @example "group*"
+     *
+     * @param string          $pattern The pattern to search for.
+     * @param array           $context Encryption Context key value pairs.
+     * @param int|string|null $version Numeric version for all credentials or null for highest of each credential.
+     *
+     * @throws CredentialNotFoundException If the credential does not exist.
+     * @throws IntegrityException If the HMAC does not match.
+     * @throws RuntimeException If decryption fails.
+     *
+     * @return array [name => secret]
+     */
+    public function search($pattern = '*', $context = [], $version = null);
+
+    /**
      * Fetches and decrypts the credential.
      *
      * @param string          $name    The credential's name.

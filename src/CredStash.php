@@ -73,10 +73,28 @@ class CredStash implements CredStashInterface
      */
     public function getAll($context = [], $version = null)
     {
+        return $this->search(null, $context, $version);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function search($pattern = '*', $context = [], $version = null)
+    {
+        if (!$pattern || $pattern === '*') {
+            $pattern = null;
+        } else {
+            $pattern = str_replace('\\', '\\\\', $pattern);
+        }
+
         $result = [];
 
         $credentials = $this->listCredentials();
         foreach ($credentials as $name => $credentialVersion) {
+            if ($pattern && !fnmatch($pattern, $name)) {
+                continue;
+            }
+
             $result[$name] = $this->get($name, $context, $version !== null ? $version : $credentialVersion);
         }
 
