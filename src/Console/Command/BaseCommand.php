@@ -7,7 +7,10 @@ use CredStash\CredStashInterface;
 use CredStash\Encryption\KmsEncryption;
 use CredStash\Store\DynamoDbStore;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Base CredStash Command.
@@ -59,6 +62,35 @@ EOL
     }
 
     /**
+     * Add context parameter to input definition.
+     *
+     * @return BaseCommand
+     */
+    protected function addContextArgument()
+    {
+        $this->addArgument(
+            'context',
+            InputArgument::IS_ARRAY,
+            "Encryption context key/value pairs associated with the credential\n" . 
+            "in the form of <comment>\"key=value\"</comment>"
+        );
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function initialize(InputInterface $input, OutputInterface $output)
+    {
+        parent::initialize($input, $output);
+        
+        if ($input->hasArgument('context')) {
+            $input->setArgument('context', $this->normalizeContext($input->getArgument('context')));
+        }
+    }
+
+    /**
      * @return CredStashInterface
      */
     protected function getCredStash()
@@ -67,5 +99,28 @@ EOL
         $helper = $this->getHelper('credstash');
 
         return $helper->getCredStash();
+    }
+
+    /**
+     * Normalize context args by splitting them
+     * from key=value into [key => value]
+     *
+     * @param array $args
+     *
+     * @return array
+     */
+    private function normalizeContext($args)
+    {
+        $context = [];
+
+        foreach ($args as $arg) {
+            $parts = explode('=', $arg, 2);
+            if (empty($parts[1])) {
+                throw new \InvalidArgumentException(sprintf('"%s" is not the form of "key=value"', $arg));
+            }
+            $context[$parts[0]] = $parts[1];
+        }
+
+        return $context;
     }
 }
