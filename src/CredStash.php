@@ -58,10 +58,12 @@ class CredStash implements CredStashInterface
     /**
      * {@inheritdoc}
      */
-    public function listCredentials()
+    public function listCredentials($pad = true)
     {
         $credentials = $this->store->listCredentials();
-        $credentials = array_map('intval', $credentials);
+        if (!$pad) {
+            $credentials = array_map('intval', $credentials);
+        }
 
         return $credentials;
     }

@@ -17,9 +17,11 @@ interface CredStashInterface
     /**
      * Fetches the names and version of every credential in the store.
      *
+     * @param bool $pad Format versions as strings with 0's padded or as integers.
+     *
      * @return array [name => version]
      */
-    public function listCredentials();
+    public function listCredentials($pad = true);
 
     /**
      * Fetches and decrypts all credentials.
