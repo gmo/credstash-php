@@ -9,5 +9,14 @@ if (file_exists(__DIR__ . '/../vendor')) {
     require_once __DIR__ . '/../../../../vendor/autoload.php';
 }
 
+if (!class_exists(Symfony\Component\Console\Application::class)) {
+    printf(
+        "You need to install Symfony's Console component to use %s\n\n" . 
+        "composer require symfony/console\n\n",
+        $argv[0]
+    );
+    exit(1);
+}
+
 $app = new CredStash\Console\Application();
 $app->run();
