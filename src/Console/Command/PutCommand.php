@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Webmozart\PathUtil\Path;
 
 /**
  * Put Command.
@@ -86,6 +87,8 @@ EOL
      */
     protected function readFile($filename)
     {
+        $filename = Path::canonicalize($filename);
+
         $level = error_reporting(0);
         $content = file_get_contents($filename);
         error_reporting($level);
