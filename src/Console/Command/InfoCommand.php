@@ -23,6 +23,7 @@ class InfoCommand extends BaseCommand
         $this
             ->setName('info')
             ->setDescription('List credentials and their versions')
+            ->setAliases(['search'])
             ->addArgument('pattern', null, 'Filter credentials to those matching this pattern', '*')
             ->addOption('name-only', null, null, 'Only output names not versions')
         ;
