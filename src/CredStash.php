@@ -7,24 +7,27 @@ use CredStash\Encryption\EncryptionInterface;
 use CredStash\Encryption\KmsEncryption;
 use CredStash\Store\DynamoDbStore;
 use CredStash\Store\StoreInterface;
+use Traversable;
 
 /**
  * The CredStash.
  *
  * @author Carson Full <carsonfull@gmail.com>
  */
-class CredStash implements CredStashInterface
+class CredStash implements CredStashInterface, ContextAwareInterface
 {
     /** @var StoreInterface */
     protected $store;
     /** @var EncryptionInterface */
     protected $encryption;
+    /** @var array */
+    protected $context = [];
 
     /**
      * Constructor.
      *
-     * @param StoreInterface      $store
-     * @param EncryptionInterface $encryption
+     * @param StoreInterface      $store      The store implementation.
+     * @param EncryptionInterface $encryption The encryption implementation.
      */
     public function __construct(StoreInterface $store, EncryptionInterface $encryption)
     {
@@ -39,7 +42,7 @@ class CredStash implements CredStashInterface
      * @param string $tableName The table name. Defaults to "credential-store".
      * @param string $kmsKey    The KMS key. Defaults to "alias/credstash".
      *
-     * @return CredStashInterface
+     * @return CredStash
      */
     public static function createFromSdk(
         Sdk $aws,
@@ -53,6 +56,31 @@ class CredStash implements CredStashInterface
         $encryption = new KmsEncryption($kms, $kmsKey ?: KmsEncryption::DEFAULT_KMS_KEY);
 
         return new static($store, $encryption);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getContext()
+    {
+        return $this->context;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function replaceContext($context)
+    {
+        $this->context = [];
+        $this->setContext($context);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setContext($context)
+    {
+        $this->context = $this->mergeContext($context);
     }
 
     /**
@@ -87,6 +115,8 @@ class CredStash implements CredStashInterface
             $pattern = str_replace('\\', '\\\\', $pattern);
         }
 
+        $context = $this->mergeContext($context);
+
         $result = [];
 
         $credentials = $this->listCredentials();
@@ -106,6 +136,8 @@ class CredStash implements CredStashInterface
      */
     public function get($name, $context = [], $version = null)
     {
+        $context = $this->mergeContext($context);
+
         if ($version === null) {
             $credential = $this->store->get($name);
         } else {
@@ -125,6 +157,8 @@ class CredStash implements CredStashInterface
      */
     public function put($name, $secret, $context = [], $version = null)
     {
+        $context = $this->mergeContext($context);
+
         if ($version === null) {
             $version = $this->getHighestVersion($name) + 1;
         }
@@ -155,6 +189,66 @@ class CredStash implements CredStashInterface
     public function getHighestVersion($name)
     {
         return (int) $this->store->getHighestVersion($name);
+    }
+
+    /**
+     * Normalize context given and merge it with global context.
+     *
+     * Nulls values in given context will remove those key pairs
+     * from the merged context returned.
+     *
+     * @param array|Traversable $context
+     *
+     * @return array
+     */
+    protected function mergeContext($context = [])
+    {
+        $context = $this->normalizeContext($context);
+        $context = array_replace($this->context, $context);
+
+        // Remove null values, but allow "0"
+        $context = array_filter($context, function ($value) {
+            return $value !== null;
+        });
+
+        return $context;
+    }
+
+    /**
+     * Normalizes context keys and values.
+     *
+     * Values can be strings or nulls.
+     * Booleans and numbers are converted to strings.
+     * "null" and empty strings is converted to null type.
+     * All strings are trimmed.
+     *
+     * @param array|Traversable $context
+     *
+     * @throws \InvalidArgumentException If values are not scalar or null.
+     *
+     * @return array
+     */
+    private function normalizeContext($context)
+    {
+        $normalized = [];
+
+        foreach ($context as $key => $value) {
+            if ($value !== null && !is_scalar($value)) {
+                throw new \InvalidArgumentException('CredStash expects context values to be scalar or null.');
+            }
+            if (is_bool($value)) {
+                $value = $value ? 'true' : 'false';
+            } elseif (is_numeric($value) || is_string($value)) {
+                $value = trim($value);
+            }
+            if ($value === 'null' || $value === '') {
+                $value = null;
+            }
+
+            $normalized[trim($key)] = $value;
+        }
+
+        return $normalized;
     }
 
     /**
