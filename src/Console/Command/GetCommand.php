@@ -2,6 +2,7 @@
 
 namespace CredStash\Console\Command;
 
+use CredStash\Exception\DecryptionException;
 use CredStash\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -85,7 +86,12 @@ class GetCommand extends BaseCommand
         $context = $input->getArgument('context');
         $version = $input->getOption('cred-version');
 
-        $value = $this->fetchCredentials($input, $context, $version);
+        try {
+            $value = $this->fetchCredentials($input, $context, $version);
+        } catch (DecryptionException $e) {
+            // Only show previous exceptions if verbose output
+            throw new DecryptionException($e->getMessage(), $output->isVerbose() ? $e : null);
+        }
 
         $output->write($value);
 

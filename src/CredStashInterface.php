@@ -3,9 +3,10 @@
 namespace CredStash;
 
 use CredStash\Exception\CredentialNotFoundException;
+use CredStash\Exception\DecryptionException;
 use CredStash\Exception\DuplicateCredentialVersionException;
+use CredStash\Exception\EncryptionException;
 use CredStash\Exception\IntegrityException;
-use CredStash\Exception\RuntimeException;
 use Traversable;
 
 /**
@@ -38,7 +39,7 @@ interface CredStashInterface
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
-     * @throws RuntimeException If decryption fails.
+     * @throws DecryptionException If decryption fails.
      *
      * @return array [name => secret]
      */
@@ -53,7 +54,7 @@ interface CredStashInterface
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
-     * @throws RuntimeException If decryption fails.
+     * @throws DecryptionException If decryption fails.
      *
      * @return array [name => secret]
      */
@@ -68,7 +69,7 @@ interface CredStashInterface
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
-     * @throws RuntimeException If decryption fails.
+     * @throws DecryptionException If decryption fails.
      *
      * @return string The secret.
      */
@@ -83,7 +84,7 @@ interface CredStashInterface
      * @param int|string|null   $version Numeric version or null for next auto-incremented version.
      *
      * @throws DuplicateCredentialVersionException If the credential with the version already exists.
-     * @throws RuntimeException If encryption fails.
+     * @throws EncryptionException If encryption fails.
      */
     public function put($name, $secret, $context = [], $version = null);
 

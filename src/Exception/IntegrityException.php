@@ -2,6 +2,6 @@
 
 namespace CredStash\Exception;
 
-class IntegrityException extends RuntimeException
+class IntegrityException extends EncryptionException
 {
 }

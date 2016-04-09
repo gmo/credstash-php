@@ -2,10 +2,12 @@
 
 namespace CredStash\Encryption;
 
+use Aws\Kms\Exception\KmsException;
 use Aws\Kms\KmsClient;
 use CredStash\Credential;
+use CredStash\Exception\DecryptionException;
+use CredStash\Exception\EncryptionException;
 use CredStash\Exception\IntegrityException;
-use CredStash\Exception\RuntimeException;
 
 /**
  * An encryption algorithm using AWS KMS service and AES Cipher.
@@ -38,11 +40,22 @@ class KmsEncryption implements EncryptionInterface
      */
     public function decrypt(Credential $credential, array $context)
     {
-        $response = $this->kms->decrypt([
-            'KeyId'             => $this->kmsKey,
-            'CiphertextBlob'    => $credential->getKey(),
-            'EncryptionContext' => $context,
-        ]);
+        try {
+            $response = $this->kms->decrypt([
+                'KeyId'             => $this->kmsKey,
+                'CiphertextBlob'    => $credential->getKey(),
+                'EncryptionContext' => $context,
+            ]);
+        } catch (\Exception $e) {
+            $message = 'Failed to decrypt secret.';
+            if ($e instanceof KmsException && $e->getAwsErrorCode() === 'InvalidCiphertextException') {
+                $message .= empty($context) ?
+                    "\nThe credential may require that an encryption context be provided to decrypt it." :
+                    "\nThe encryption context provided may not match the context used when the credential was stored.";
+            }
+
+            throw new DecryptionException($message, $e);
+        }
 
         $dataKey = substr($response['Plaintext'], 0, 32);
         $hmacKey = substr($response['Plaintext'], 32);
@@ -61,11 +74,15 @@ class KmsEncryption implements EncryptionInterface
 
         // Generate a 64 byte key
         // Half will be for data encryption, the other half for HMAC
-        $response = $this->kms->generateDataKey([
-            'KeyId'             => $this->kmsKey,
-            'EncryptionContext' => $context,
-            'NumberOfBytes'     => 64,
-        ]);
+        try {
+            $response = $this->kms->generateDataKey([
+                'KeyId'             => $this->kmsKey,
+                'EncryptionContext' => $context,
+                'NumberOfBytes'     => 64,
+            ]);
+        } catch (\Exception $e) {
+            throw new EncryptionException(sprintf('Failed to generate data key using KMS key "%s"', $this->kmsKey), $e);
+        }
 
         $credential->setKey($response['CiphertextBlob']);
 
@@ -106,13 +123,15 @@ class KmsEncryption implements EncryptionInterface
      * @param string $secret
      * @param string $dataKey
      *
+     * @throws EncryptionException If encryption fails.
+     *
      * @return string The encrypted data.
      */
     private function aesEncrypt($secret, $dataKey)
     {
         $contents = openssl_encrypt($secret, 'aes-256-ctr', $dataKey, true, $this->getCounter());
         if ($contents === false) {
-            throw new RuntimeException('Failed to encrypt secret data.');
+            throw new EncryptionException('Failed to encrypt secret.');
         }
 
         return $contents;
@@ -124,13 +143,15 @@ class KmsEncryption implements EncryptionInterface
      * @param string $contents The encrypted data.
      * @param string $dataKey
      *
+     * @throws DecryptionException If decryption fails.
+     *
      * @return string The secret data.
      */
     private function aesDecrypt($contents, $dataKey)
     {
         $secret = openssl_decrypt($contents, 'aes-256-ctr', $dataKey, true, $this->getCounter());
         if ($secret === false) {
-            throw new RuntimeException('Failed to decrypt secret contents');
+            throw new DecryptionException('Failed to decrypt secret.');
         }
 
         return $secret;
