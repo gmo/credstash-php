@@ -6,6 +6,7 @@ use CredStash\Exception\CredentialNotFoundException;
 use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\IntegrityException;
 use CredStash\Exception\RuntimeException;
+use Traversable;
 
 /**
  * A CredStash.
@@ -33,8 +34,8 @@ interface CredStashInterface
     /**
      * Fetches and decrypts all credentials.
      *
-     * @param array           $context Encryption Context key value pairs.
-     * @param int|string|null $version Numeric version for all credentials or null for highest of each credential.
+     * @param array|Traversable $context Encryption Context key value pairs.
+     * @param int|string|null   $version Numeric version for all credentials or null for highest of each credential.
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
@@ -47,9 +48,9 @@ interface CredStashInterface
     /**
      * Fetches and decrypts all credentials matching the pattern given.
      *
-     * @param string $pattern The pattern to search for. See {@see listCredentials} for details.
-     * @param array           $context Encryption Context key value pairs.
-     * @param int|string|null $version Numeric version for all credentials or null for highest of each credential.
+     * @param string            $pattern The pattern to search for. See {@see listCredentials} for details.
+     * @param array|Traversable $context Encryption Context key value pairs.
+     * @param int|string|null   $version Numeric version for all credentials or null for highest of each credential.
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
@@ -62,9 +63,9 @@ interface CredStashInterface
     /**
      * Fetches and decrypts the credential.
      *
-     * @param string          $name    The credential's name.
-     * @param array           $context Encryption Context key value pairs.
-     * @param int|string|null $version Numeric version or null for highest.
+     * @param string            $name    The credential's name.
+     * @param array|Traversable $context Encryption Context key value pairs.
+     * @param int|string|null   $version Numeric version or null for highest.
      *
      * @throws CredentialNotFoundException If the credential does not exist.
      * @throws IntegrityException If the HMAC does not match.
@@ -77,10 +78,10 @@ interface CredStashInterface
     /**
      * Put a credential into the store.
      *
-     * @param string          $name    The credential's name.
-     * @param string          $secret  The secret value.
-     * @param array           $context Encryption Context key value pairs.
-     * @param int|string|null $version Numeric version or null for next auto-incremented version.
+     * @param string            $name    The credential's name.
+     * @param string            $secret  The secret value.
+     * @param array|Traversable $context Encryption Context key value pairs.
+     * @param int|string|null   $version Numeric version or null for next auto-incremented version.
      *
      * @throws DuplicateCredentialVersionException If the credential with the version already exists.
      * @throws RuntimeException If encryption fails.
