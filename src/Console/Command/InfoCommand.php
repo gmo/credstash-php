@@ -22,6 +22,7 @@ class InfoCommand extends BaseCommand
         $this
             ->setName('info')
             ->setDescription('List credentials and their versions')
+            ->addArgument('pattern', null, 'Filter credentials to those matching this pattern', '*')
             ->addOption('int', 'i', null, 'Cast versions to integers instead of leaving them padded with 0\'s')
         ;
         parent::configure();
@@ -32,7 +33,11 @@ class InfoCommand extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $credentials = $this->getCredStash()->listCredentials(!$input->getOption('int'));
+        $pattern = $input->getArgument('pattern');
+        $cast = !$input->getOption('int');
+
+        $credentials = $this->getCredStash()->listCredentials($pattern, $cast);
+
         foreach ($credentials as $name => $version) {
             $output->writeln("<info>$name</info> -- version <comment>$version</comment>");
         }

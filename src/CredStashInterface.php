@@ -15,13 +15,20 @@ use CredStash\Exception\RuntimeException;
 interface CredStashInterface
 {
     /**
-     * Fetches the names and version of every credential in the store.
+     * Fetches the names and version of every credential in the
+     * store matching the pattern given.
      *
-     * @param bool $pad Format versions as strings with 0's padded or as integers.
+     * The pattern can contain "*" and "?" wildcard characters and "[]" grouping.
+     *
+     * @example "gr[ae]y"
+     * @example "group*"
+     *
+     * @param string $pattern The pattern to search for.
+     * @param bool   $pad     Format versions as strings with 0's padded or as integers.
      *
      * @return array [name => version]
      */
-    public function listCredentials($pad = true);
+    public function listCredentials($pattern = '*', $pad = true);
 
     /**
      * Fetches and decrypts all credentials.
@@ -40,12 +47,7 @@ interface CredStashInterface
     /**
      * Fetches and decrypts all credentials matching the pattern given.
      *
-     * The pattern can contain "*" and "?" wildcard characters and "[]" grouping.
-     *
-     * @example "gr[ae]y"
-     * @example "group*"
-     *
-     * @param string          $pattern The pattern to search for.
+     * @param string $pattern The pattern to search for. See {@see listCredentials} for details.
      * @param array           $context Encryption Context key value pairs.
      * @param int|string|null $version Numeric version for all credentials or null for highest of each credential.
      *

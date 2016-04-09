@@ -86,9 +86,12 @@ class CredStash implements CredStashInterface, ContextAwareInterface
     /**
      * {@inheritdoc}
      */
-    public function listCredentials($pad = true)
+    public function listCredentials($pattern = '*', $pad = true)
     {
         $credentials = $this->store->listCredentials();
+
+        $credentials = $this->filterCredentials($pattern, $credentials);
+
         if (!$pad) {
             $credentials = array_map('intval', $credentials);
         }
@@ -109,22 +112,12 @@ class CredStash implements CredStashInterface, ContextAwareInterface
      */
     public function search($pattern = '*', $context = [], $version = null)
     {
-        if (!$pattern || $pattern === '*') {
-            $pattern = null;
-        } else {
-            $pattern = str_replace('\\', '\\\\', $pattern);
-        }
-
         $context = $this->mergeContext($context);
 
+        $credentials = $this->listCredentials($pattern);
+
         $result = [];
-
-        $credentials = $this->listCredentials();
         foreach ($credentials as $name => $credentialVersion) {
-            if ($pattern && !fnmatch($pattern, $name)) {
-                continue;
-            }
-
             $result[$name] = $this->get($name, $context, $version !== null ? $version : $credentialVersion);
         }
 
@@ -263,5 +256,32 @@ class CredStash implements CredStashInterface, ContextAwareInterface
     private function paddedInt($int)
     {
         return str_pad($int, 19, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Filter list of credentials to those that match the pattern given.
+     *
+     * @param string $pattern
+     * @param array  $credentials
+     *
+     * @return array
+     */
+    private function filterCredentials($pattern, array $credentials)
+    {
+        if (!$pattern || $pattern === '*') {
+            return $credentials;
+        }
+
+        $pattern = str_replace('\\', '\\\\', $pattern);
+
+        $result = [];
+
+        foreach ($credentials as $name => $version) {
+            if (fnmatch($pattern, $name)) {
+                $result[$name] = $version;
+            }
+        }
+
+        return $result;
     }
 }
