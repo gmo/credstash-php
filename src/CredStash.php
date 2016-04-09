@@ -5,6 +5,7 @@ namespace CredStash;
 use Aws\Sdk;
 use CredStash\Encryption\EncryptionInterface;
 use CredStash\Encryption\KmsEncryption;
+use CredStash\Exception\AutoIncrementException;
 use CredStash\Store\DynamoDbStore;
 use CredStash\Store\StoreInterface;
 use Traversable;
@@ -92,6 +93,8 @@ class CredStash implements CredStashInterface, ContextAwareInterface
 
         $credentials = $this->filterCredentials($pattern, $credentials);
 
+        $credentials = array_map(function ($version) { return ltrim($version, '0'); }, $credentials);
+
         return $credentials;
     }
 
@@ -149,7 +152,11 @@ class CredStash implements CredStashInterface, ContextAwareInterface
         $context = $this->mergeContext($context);
 
         if ($version === null) {
-            $version = $this->getHighestVersion($name) + 1;
+            $version = $this->getHighestVersion($name);
+            if (!is_numeric($version)) {
+                throw new AutoIncrementException($version);
+            }
+            ++$version;
         }
 
         $credential = $this->encryption->encrypt($secret, $context);
@@ -177,7 +184,9 @@ class CredStash implements CredStashInterface, ContextAwareInterface
      */
     public function getHighestVersion($name)
     {
-        return (int) $this->store->getHighestVersion($name);
+        $version = $this->store->getHighestVersion($name);
+
+        return ltrim($version, '0') ?: '0';
     }
 
     /**

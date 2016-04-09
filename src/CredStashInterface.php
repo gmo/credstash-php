@@ -2,6 +2,7 @@
 
 namespace CredStash;
 
+use CredStash\Exception\AutoIncrementException;
 use CredStash\Exception\CredentialNotFoundException;
 use CredStash\Exception\DecryptionException;
 use CredStash\Exception\DuplicateCredentialVersionException;
@@ -83,6 +84,7 @@ interface CredStashInterface
      * @param array|Traversable $context Encryption Context key value pairs.
      * @param int|string|null   $version Numeric version or null for next auto-incremented version.
      *
+     * @throws AutoIncrementException If current version cannot be auto incremented.
      * @throws DuplicateCredentialVersionException If the credential with the version already exists.
      * @throws EncryptionException If encryption fails.
      */
@@ -100,7 +102,7 @@ interface CredStashInterface
      *
      * @param string $name The credential's name.
      *
-     * @return int The version or 0 if not found.
+     * @return string The version or "0" if not found.
      */
     public function getHighestVersion($name);
 }
