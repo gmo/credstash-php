@@ -25,11 +25,10 @@ interface CredStashInterface
      * @example "group*"
      *
      * @param string $pattern The pattern to search for.
-     * @param bool   $pad     Format versions as strings with 0's padded or as integers.
      *
      * @return array [name => version]
      */
-    public function listCredentials($pattern = '*', $pad = true);
+    public function listCredentials($pattern = '*');
 
     /**
      * Fetches and decrypts all credentials.

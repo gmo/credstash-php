@@ -25,7 +25,6 @@ class InfoCommand extends BaseCommand
             ->setDescription('List credentials and their versions')
             ->addArgument('pattern', null, 'Filter credentials to those matching this pattern', '*')
             ->addOption('name-only', null, null, 'Only output names not versions')
-            ->addOption('int', 'i', null, 'Cast versions to integers instead of leaving them padded with 0\'s')
         ;
         parent::configure();
     }
@@ -36,10 +35,9 @@ class InfoCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $pattern = $input->getArgument('pattern');
-        $cast = !$input->getOption('int');
         $nameOnly = $input->getOption('name-only');
 
-        $credentials = $this->getCredStash()->listCredentials($pattern, $cast);
+        $credentials = $this->getCredStash()->listCredentials($pattern);
 
         $table = new Table($output);
         $table->setStyle('compact');

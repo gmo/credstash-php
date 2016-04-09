@@ -86,15 +86,11 @@ class CredStash implements CredStashInterface, ContextAwareInterface
     /**
      * {@inheritdoc}
      */
-    public function listCredentials($pattern = '*', $pad = true)
+    public function listCredentials($pattern = '*')
     {
         $credentials = $this->store->listCredentials();
 
         $credentials = $this->filterCredentials($pattern, $credentials);
-
-        if (!$pad) {
-            $credentials = array_map('intval', $credentials);
-        }
 
         return $credentials;
     }
