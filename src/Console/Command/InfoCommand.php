@@ -2,6 +2,7 @@
 
 namespace CredStash\Console\Command;
 
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -23,6 +24,7 @@ class InfoCommand extends BaseCommand
             ->setName('info')
             ->setDescription('List credentials and their versions')
             ->addArgument('pattern', null, 'Filter credentials to those matching this pattern', '*')
+            ->addOption('name-only', null, null, 'Only output names not versions')
             ->addOption('int', 'i', null, 'Cast versions to integers instead of leaving them padded with 0\'s')
         ;
         parent::configure();
@@ -35,11 +37,28 @@ class InfoCommand extends BaseCommand
     {
         $pattern = $input->getArgument('pattern');
         $cast = !$input->getOption('int');
+        $nameOnly = $input->getOption('name-only');
 
         $credentials = $this->getCredStash()->listCredentials($pattern, $cast);
 
-        foreach ($credentials as $name => $version) {
-            $output->writeln("<info>$name</info> -- version <comment>$version</comment>");
+        $table = new Table($output);
+        $table->setStyle('compact');
+        $table->setHeaders(['Name', 'Version']);
+
+        // If only name show data like a list
+        if ($nameOnly) {
+            $table->setHeaders([]);
+            $table->getStyle()->setVerticalBorderChar('');
         }
+
+        foreach ($credentials as $name => $version) {
+            $row = [$name];
+            if (!$nameOnly) {
+                $row[] = "<comment>$version</comment>";
+            }
+            $table->addRow($row);
+        }
+
+        $table->render();
     }
 }
