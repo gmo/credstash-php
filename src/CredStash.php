@@ -8,6 +8,7 @@ use CredStash\Encryption\KmsEncryption;
 use CredStash\Exception\AutoIncrementException;
 use CredStash\Store\DynamoDbStore;
 use CredStash\Store\StoreInterface;
+use Iterator;
 use Traversable;
 
 /**
@@ -93,7 +94,7 @@ class CredStash implements CredStashInterface, ContextAwareInterface
 
         $credentials = $this->filterCredentials($pattern, $credentials);
 
-        $credentials = array_map(function ($version) { return ltrim($version, '0'); }, $credentials);
+        $credentials = $this->unpadVersion($credentials);
 
         return $credentials;
     }
@@ -115,12 +116,9 @@ class CredStash implements CredStashInterface, ContextAwareInterface
 
         $credentials = $this->listCredentials($pattern);
 
-        $result = [];
         foreach ($credentials as $name => $credentialVersion) {
-            $result[$name] = $this->get($name, $context, $version !== null ? $version : $credentialVersion);
+            yield $name => $this->get($name, $context, $version !== null ? $version : $credentialVersion);
         }
-
-        return $result;
     }
 
     /**
@@ -266,27 +264,36 @@ class CredStash implements CredStashInterface, ContextAwareInterface
     /**
      * Filter list of credentials to those that match the pattern given.
      *
-     * @param string $pattern
-     * @param array  $credentials
+     * @param string   $pattern
+     * @param Iterator $credentials
      *
-     * @return array
+     * @return Iterator
      */
-    private function filterCredentials($pattern, array $credentials)
+    private function filterCredentials($pattern, $credentials)
     {
-        if (!$pattern || $pattern === '*') {
-            return $credentials;
+        if ($pattern && $pattern !== '*') {
+            $pattern = str_replace('\\', '\\\\', $pattern);
+        } else {
+            $pattern = null;
         }
-
-        $pattern = str_replace('\\', '\\\\', $pattern);
-
-        $result = [];
 
         foreach ($credentials as $name => $version) {
-            if (fnmatch($pattern, $name)) {
-                $result[$name] = $version;
+            if ($pattern && !fnmatch($pattern, $name)) {
+                continue;
             }
+            yield $name => $version;
         }
+    }
 
-        return $result;
+    /**
+     * @param Iterator $credentials
+     *
+     * @return Iterator
+     */
+    private function unpadVersion($credentials)
+    {
+        foreach ($credentials as $name => $version) {
+            yield $name => ltrim($version, '0');
+        }
     }
 }

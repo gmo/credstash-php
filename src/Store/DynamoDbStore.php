@@ -39,7 +39,7 @@ class DynamoDbStore implements StoreInterface
      */
     public function listCredentials()
     {
-        $response = $this->db->scan([
+        $pages = $this->db->getPaginator('Scan', [
             'TableName'                => $this->tableName,
             'ProjectionExpression'     => '#N, version',
             'ExpressionAttributeNames' => [
@@ -47,16 +47,11 @@ class DynamoDbStore implements StoreInterface
             ],
         ]);
 
-        if ($response['Count'] === 0) {
-            return [];
+        foreach ($pages as $page) {
+            foreach ($page['Items'] as $item) {
+                yield $item['name']['S'] => $item['version']['S'];
+            }
         }
-
-        $result = [];
-        foreach ($response['Items'] as $item) {
-            $result[$item['name']['S']] = $item['version']['S'];
-        }
-
-        return $result;
     }
 
     /**

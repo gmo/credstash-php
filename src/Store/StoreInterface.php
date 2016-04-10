@@ -5,6 +5,7 @@ namespace CredStash\Store;
 use CredStash\Credential;
 use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\CredentialNotFoundException;
+use Iterator;
 
 /**
  * A credential storage.
@@ -16,7 +17,7 @@ interface StoreInterface
     /**
      * Fetches the names and version of every credential in the store.
      *
-     * @return array [name => normalized (padded) numeric version string]
+     * @return Iterator [name => normalized (padded) numeric version string]
      */
     public function listCredentials();
 

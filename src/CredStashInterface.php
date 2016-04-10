@@ -8,6 +8,7 @@ use CredStash\Exception\DecryptionException;
 use CredStash\Exception\DuplicateCredentialVersionException;
 use CredStash\Exception\EncryptionException;
 use CredStash\Exception\IntegrityException;
+use Iterator;
 use Traversable;
 
 /**
@@ -28,7 +29,7 @@ interface CredStashInterface
      *
      * @param string $pattern The pattern to search for.
      *
-     * @return array [name => version]
+     * @return Iterator [name => version]
      */
     public function listCredentials($pattern = '*');
 
@@ -42,7 +43,7 @@ interface CredStashInterface
      * @throws IntegrityException If the HMAC does not match.
      * @throws DecryptionException If decryption fails.
      *
-     * @return array [name => secret]
+     * @return Iterator [name => secret]
      */
     public function getAll($context = [], $version = null);
 
@@ -57,7 +58,7 @@ interface CredStashInterface
      * @throws IntegrityException If the HMAC does not match.
      * @throws DecryptionException If decryption fails.
      *
-     * @return array [name => secret]
+     * @return Iterator [name => secret]
      */
     public function search($pattern = '*', $context = [], $version = null);
 
