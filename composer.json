@@ -13,7 +13,7 @@
     "require": {
         "aws/aws-sdk-php": "^3.9",
         "ext-openssl": "*",
-        "php": "^5.5.9",
+        "php": "^5.5.9 || ^7.0",
         "symfony/polyfill-php56": "^1.0",
         "webmozart/path-util": "^2.3"
     },
