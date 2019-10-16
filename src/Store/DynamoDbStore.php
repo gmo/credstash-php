@@ -10,7 +10,7 @@ use CredStash\Exception\CredentialNotFoundException;
 
 /**
  * A DynamoDB credential store.
- * 
+ *
  * @author Carson Full <carsonfull@gmail.com>
  */
 class DynamoDbStore implements StoreInterface
@@ -140,7 +140,7 @@ class DynamoDbStore implements StoreInterface
      */
     public function delete($name)
     {
-        $response = $this->db->scan([
+        $pages = $this->db->getPaginator('Scan', [
             'TableName'                 => $this->tableName,
             'FilterExpression'          => '#N = :name',
             'ProjectionExpression'      => '#N, version',
@@ -152,17 +152,19 @@ class DynamoDbStore implements StoreInterface
             ],
         ]);
 
-        foreach ($response['Items'] as $item) {
-            $this->db->deleteItem([
-                'TableName' => $this->tableName,
-                'Key' => $item,
-            ]);
+        foreach ($pages as $page) {
+            foreach ($page['Items'] as $item) {
+                $this->db->deleteItem([
+                    'TableName' => $this->tableName,
+                    'Key' => $item,
+                ]);
+            }
         }
     }
 
     /**
      * Queries the DB for the secret.
-     * 
+     *
      * @param string     $name
      * @param string|null $projection Optional projection expression
      *
